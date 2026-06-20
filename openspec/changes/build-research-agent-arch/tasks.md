@@ -1,10 +1,10 @@
 ## 1. 專案骨架與設定
 
-- [ ] 1.1 用 `uv add` 加入執行期相依（`langgraph`、`openai`、`fastapi`、`uvicorn`、`pydantic-settings`、`streamlit`、`tavily-python`）並在 `pyproject.toml` 鎖版本
-- [ ] 1.2 建立三個頂層套件:核心 `src/research_agent/`（`config`、`models`、`llm`、`search`、`agents/`、`graph/`、`memory/`）、API 層 `src/api/`、UI 層 `src/ui/`;設定 `uv` 建置能涵蓋三者。維持單向相依:ui ─HTTP→ api ─import→ 核心,核心不 import api／ui
-- [ ] 1.3 實作 `config.py`，用 `pydantic-settings` 寫 `Settings` 模型（LLM `base_url`、金鑰存 `SecretStr`、逐 agent 的模型 id、`recent_rounds`(env `MEMORY_RECENT_ROUNDS`)≥1、`compress_every_rounds`(env `MEMORY_COMPRESS_EVERY_ROUNDS`)≥1、`MEMORY_DATA_DIR`、`TAVILY_API_KEY` 存 `SecretStr`、API base URL），並做欄位層級驗證
-- [ ] 1.4 新增 `.env.example`，記錄所有環境變數
-- [ ] 1.5 測試：設定能從 env 載入；`recent_rounds`／`compress_every_rounds` 無效與必要金鑰缺漏時拋 `ValidationError`
+- [x] 1.1 用 `uv add` 加入執行期相依（`langgraph`、`openai`、`fastapi`、`uvicorn`、`pydantic-settings`、`streamlit`、`tavily-python`）並在 `pyproject.toml` 鎖版本
+- [x] 1.2 建立三個頂層套件:核心 `src/research_agent/`（`config`、`models`、`llm`、`search`、`agents/`、`graph/`、`memory/`）、API 層 `src/api/`、UI 層 `src/ui/`;設定 `uv` 建置能涵蓋三者。維持單向相依:ui ─HTTP→ api ─import→ 核心,核心不 import api／ui
+- [x] 1.3 實作 `config.py`，用 `pydantic-settings` 寫 `Settings` 模型（LLM `base_url`、金鑰存 `SecretStr`、逐 agent 的模型 id、`recent_rounds`(env `MEMORY_RECENT_ROUNDS`)≥1、`compress_every_rounds`(env `MEMORY_COMPRESS_EVERY_ROUNDS`)≥1、`MEMORY_DATA_DIR`、`TAVILY_API_KEY` 存 `SecretStr`、API base URL），並做欄位層級驗證
+- [x] 1.4 新增 `.env.example`，記錄所有環境變數
+- [x] 1.5 測試：設定能從 env 載入；`recent_rounds`／`compress_every_rounds` 無效與必要金鑰缺漏時拋 `ValidationError`
 
 ## 2. 共用模型與 LLM client
 
