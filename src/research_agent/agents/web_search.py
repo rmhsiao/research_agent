@@ -45,6 +45,8 @@ class WebSearchAgent(BaseModel):
             ],
             model=self.model,
         )
+        # TODO: extract key passages instead of carrying the whole backend
+        # content as a single snippet.
         return Finding(
             summary=summary,
             snippets=[result.content] if result.content else [],
