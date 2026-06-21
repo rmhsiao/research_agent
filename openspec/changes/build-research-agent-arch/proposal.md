@@ -42,7 +42,7 @@
 
 ## Impact
 
-- **新增程式碼**：核心套件 `src/research_agent/`（config、models、llm、search、memory、
+- **新增程式碼**：核心套件 `src/research_agent/`（config、dto、llm、search、memory、
   agents、graph）、API 層 `src/api/`、UI 層 `src/ui/`、`Dockerfile`、
   `docker-compose.yml`。
 - **新增相依**：`langgraph`、`openai`（OpenAI 相容 LLM client）、`fastapi`、

@@ -36,7 +36,7 @@
 src/
   research_agent/        # 核心套件（library）：純邏輯，不依賴 fastapi/streamlit
     config.py            #   Settings（pydantic-settings），env 驅動
-    models.py            #   共用 Pydantic DTO（Findings、Round…）
+    dto.py               #   共用 Pydantic DTO（Findings、Round…）
     llm.py               #   LLMClient 介面 ＋ OpenAI 相容實作
     search.py            #   SearchClient 介面 ＋ Tavily 實作
     memory/              #   SessionStore 介面 ＋ file 實作、近期視窗、非同步壓縮器
@@ -69,12 +69,16 @@ agent 指定，不動程式碼即可抽換。一個輕薄的 `llm.py` 工廠集�
 ### 抽換接縫（介面抽象化）
 
 只把三個外部／儲存邊界抽成介面，其餘維持具體實作，等第二個需求出現再 refactor。三個介面
-抽象化的共同目的都是**保持抽換彈性**（換實作不動上層），不是為了測試 mock。
+抽象化的共同目的都是**保持抽換彈性**（換實作不動上層），不是為了測試 mock。介面以 ABC
+（`BaseModel, ABC` ＋ `@abstractmethod`）定義 —— 我們自有全部實作，繼承能拿到實例化層級的
+抽象方法強制與明確的型別關係。**對外網路呼叫的接縫方法採 async**（LLM、搜尋）—— 圖與 API
+都在 async 之上跑，網路呼叫若同步會阻塞 event loop；`SessionStore` 是本機檔案 I/O、量小且
+快，維持同步、不為它引入 async 複雜度。
 
-- **`LLMClient`** —— 形狀 `complete(messages, model) -> str`。具體實作為 OpenAI 相容
-  client。介面讓 LLM 供應商／端點可被抽換而不動 agent；維持薄，不包成厚抽象。
-- **`SearchClient`** —— 形狀 `search(query) -> list[SearchResult]`，後端錯誤 raise 且與
-  「查無結果」明確區分。具體實作為 Tavily；介面讓日後換別的搜尋後端時不動 agent。
+- **`LLMClient`** —— 形狀 `async complete(messages, model) -> str`。具體實作為 OpenAI 相容
+  client（`AsyncOpenAI`）。介面讓 LLM 供應商／端點可被抽換而不動 agent；維持薄，不包成厚抽象。
+- **`SearchClient`** —— 形狀 `async search(query) -> list[SearchResult]`，後端錯誤 raise 且與
+  「查無結果」明確區分。具體實作為 Tavily（`AsyncTavilyClient`）；介面讓日後換別的搜尋後端時不動 agent。
 - **`SessionStore`** —— 形狀 `load(session_id) -> SessionState` / `save(session_id,
   state)`。現為 file storage；介面讓日後換 Redis／DB 時不動 agent，也讓上層不認識儲存細節。
 
@@ -133,7 +137,8 @@ OpenAI client（含我們的 Streamlit UI）可直接串接;session 這種非標
 錯誤要 raise，且與正當的「查無結果」明確區分，讓協調者分得出「搜尋壞了」與「沒找到」。
 
 web search agent 回給協調者的 SHALL 是**固定結構化的 `Findings`**（型別化 Pydantic
-schema:一組各帶摘要與來源的 finding 項目),而非自由格式文字;查無結果時回項目為空的同型別
+schema:一組 finding 項目,各帶摘要、來源關鍵原文片段與來源出處),而非自由格式文字;保留關鍵
+原文片段是為了讓下游 report agent 能直接引用原文而不必回頭重抓。查無結果時回項目為空的同型別
 `Findings`,讓協調者用穩定的形狀消費。
 
 ### 前端與部署
