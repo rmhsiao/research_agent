@@ -133,7 +133,8 @@ OpenAI client（含我們的 Streamlit UI）可直接串接;session 這種非標
 錯誤要 raise，且與正當的「查無結果」明確區分，讓協調者分得出「搜尋壞了」與「沒找到」。
 
 web search agent 回給協調者的 SHALL 是**固定結構化的 `Findings`**（型別化 Pydantic
-schema:一組各帶摘要與來源的 finding 項目),而非自由格式文字;查無結果時回項目為空的同型別
+schema:一組 finding 項目,各帶摘要、來源關鍵原文片段與來源出處),而非自由格式文字;保留關鍵
+原文片段是為了讓下游 report agent 能直接引用原文而不必回頭重抓。查無結果時回項目為空的同型別
 `Findings`,讓協調者用穩定的形狀消費。
 
 ### 前端與部署

@@ -1,10 +1,20 @@
+from typing import Annotated
+
 from pydantic import BaseModel, Field
 
 
 class Finding(BaseModel):
-    """A single piece of researched information with its source."""
+    """A single piece of researched information with its source.
+
+    ``snippets`` are key passages quoted verbatim from the source; ``summary``
+    is the agent's condensed take on them. Both are kept so downstream can
+    either quote the original or work from the summary.
+    """
 
     summary: str = Field(min_length=1)
+    snippets: list[Annotated[str, Field(min_length=1)]] = Field(
+        default_factory=list
+    )
     source_title: str = Field(min_length=1)
     source_url: str = Field(min_length=1)
 

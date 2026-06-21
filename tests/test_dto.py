@@ -7,6 +7,7 @@ from research_agent.dto import Finding, Findings, Report, Round
 def _finding() -> Finding:
     return Finding(
         summary="LangGraph models agents as a state graph.",
+        snippets=["LangGraph lets you build stateful, multi-actor apps."],
         source_title="LangGraph docs",
         source_url="https://example.test/langgraph",
     )
@@ -18,6 +19,15 @@ class TestModelsValid:
         assert finding.summary
         assert finding.source_title == "LangGraph docs"
         assert finding.source_url == "https://example.test/langgraph"
+
+    def test_finding_allows_empty_snippets(self) -> None:
+        finding = Finding(
+            summary="summary",
+            snippets=[],
+            source_title="title",
+            source_url="https://example.test",
+        )
+        assert finding.snippets == []
 
     def test_findings_default_to_empty(self) -> None:
         assert Findings().items == []
@@ -37,19 +47,25 @@ class TestModelsValid:
 
 class TestModelsValidation:
     @pytest.mark.parametrize(
-        ("summary", "source_title", "source_url"),
+        ("summary", "snippets", "source_title", "source_url"),
         [
-            ("", "title", "https://example.test"),
-            ("summary", "", "https://example.test"),
-            ("summary", "title", ""),
+            ("", ["snippet"], "title", "https://example.test"),
+            ("summary", [""], "title", "https://example.test"),
+            ("summary", ["snippet"], "", "https://example.test"),
+            ("summary", ["snippet"], "title", ""),
         ],
     )
     def test_finding_rejects_empty_fields(
-        self, summary: str, source_title: str, source_url: str
+        self,
+        summary: str,
+        snippets: list[str],
+        source_title: str,
+        source_url: str,
     ) -> None:
         with pytest.raises(ValidationError):
             Finding(
                 summary=summary,
+                snippets=snippets,
                 source_title=source_title,
                 source_url=source_url,
             )
