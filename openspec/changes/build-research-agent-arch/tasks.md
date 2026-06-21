@@ -8,7 +8,7 @@
 
 ## 2. 共用模型與 LLM client
 
-- [ ] 2.1 在 `models.py` 定義共用 Pydantic DTO（`Finding`：摘要＋來源標題／網址;`Findings`：固定結構化的 finding 集合;`Report`、對話 `Round`）
+- [x] 2.1 在 `models.py` 定義共用 Pydantic DTO（`Finding`：摘要＋來源標題／網址;`Findings`：固定結構化的 finding 集合;`Report`、對話 `Round`）
 - [ ] 2.2 實作 `llm.py`：定義薄 `LLMClient` 介面，並以 OpenAI 相容（`openai` SDK，`base_url`／金鑰來自設定）實作，逐 agent 選模型 id
 - [ ] 2.3 測試：模型驗證；llm 工廠串接（mock OpenAI 相容 client）
 
