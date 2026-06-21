@@ -14,9 +14,9 @@
 
 ## 3. web search agent
 
-- [ ] 3.1 定義 `SearchClient` 介面，並以 Tavily（`tavily-python`）實作；後端錯誤要 raise，與「查無結果」的空回應明確區分
-- [ ] 3.2 實作 web search agent：查詢 → 後端搜尋 → LLM 摘要 → 回傳**固定結構化的 `Findings`**（查無結果回項目為空的同型別）
-- [ ] 3.3 測試：回傳結構化 `Findings`（pass）／查無結果回空 `Findings`／後端錯誤會 raise（mock 後端＋LLM）
+- [x] 3.1 定義 `SearchClient` 介面，並以 Tavily（`tavily-python`）實作；後端錯誤要 raise，與「查無結果」的空回應明確區分
+- [x] 3.2 實作 web search agent：查詢 → 後端搜尋 → LLM 摘要 → 回傳**固定結構化的 `Findings`**（查無結果回項目為空的同型別）
+- [x] 3.3 測試：回傳結構化 `Findings`（pass）／查無結果回空 `Findings`／後端錯誤會 raise（mock 後端＋LLM）
 
 ## 4. report generate agent
 
