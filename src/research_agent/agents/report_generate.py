@@ -45,6 +45,11 @@ class ReportGenerateAgent(BaseModel):
             f"{escape(item.source_title)}</a></li>"
             for item in findings.items
         )
+        # The LLM body is embedded as-is so a report can carry rich, interactive
+        # HTML. It is deliberately not sanitized; the findings it is built from
+        # come from untrusted web content, so a later guard must screen the
+        # output for malicious code before this is exposed to real browsers.
+        # TODO: add malicious-code detection over the generated report.
         body = f"  {answer}\n  <h2>Sources</h2>\n  <ul>\n{sources}\n  </ul>"
         return Report(html=self._document(query, body))
 

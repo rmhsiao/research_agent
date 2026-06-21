@@ -17,12 +17,14 @@
 - [x] 3.1 定義 `SearchClient` 介面，並以 Tavily（`tavily-python`）實作；後端錯誤要 raise，與「查無結果」的空回應明確區分
 - [x] 3.2 實作 web search agent：查詢 → 後端搜尋 → LLM 摘要 → 回傳**固定結構化的 `Findings`**（查無結果回項目為空的同型別）
 - [x] 3.3 測試：回傳結構化 `Findings`（pass）／查無結果回空 `Findings`／後端錯誤會 raise（mock 後端＋LLM）
+- [ ] 3.4 不受信輸入淨化（信任邊界）：web_search 回傳前以 nh3 把 snippet 洗成安全文字；`Finding.source_url` 加 http(s) 不變式（DTO），擋掉 `javascript:`／`data:` 等 URI；一併決定壞 URL 要 skip 還是 raise
 
 ## 4. report generate agent
 
 - [x] 4.1 實作 report generate agent：`Findings` ＋ 查詢 → 可獨立開啟的 HTML 報告
 - [x] 4.2 處理空結果：說明「查無資訊」、不捏造內容
 - [x] 4.3 測試：非空結果渲染出含來源的 HTML／空結果路徑（mock LLM）
+- [x] 4.4 報告本體刻意產出未過濾的 HTML（保留互動效果、不接 sanitizer）：留惡意內容偵測 TODO、`design.md` 記為 accepted risk；來源清單依 `Finding` 決定性渲染並 escape，URL 合法性交給 web_search／DTO（見 3.4）
 
 ## 5. 協調者記憶子系統
 
