@@ -36,7 +36,7 @@
 src/
   research_agent/        # 核心套件（library）：純邏輯，不依賴 fastapi/streamlit
     config.py            #   Settings（pydantic-settings），env 驅動
-    models.py            #   共用 Pydantic DTO（Findings、Round…）
+    dto.py               #   共用 Pydantic DTO（Findings、Round…）
     llm.py               #   LLMClient 介面 ＋ OpenAI 相容實作
     search.py            #   SearchClient 介面 ＋ Tavily 實作
     memory/              #   SessionStore 介面 ＋ file 實作、近期視窗、非同步壓縮器

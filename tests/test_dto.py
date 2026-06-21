@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from research_agent.models import Finding, Findings, Report, Round
+from research_agent.dto import Finding, Findings, Report, Round
 
 
 def _finding() -> Finding:

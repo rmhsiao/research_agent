@@ -1,14 +1,14 @@
 ## 1. 專案骨架與設定
 
 - [x] 1.1 用 `uv add` 加入執行期相依（`langgraph`、`openai`、`fastapi`、`uvicorn`、`pydantic-settings`、`streamlit`、`tavily-python`）並在 `pyproject.toml` 鎖版本
-- [x] 1.2 建立三個頂層套件:核心 `src/research_agent/`（`config`、`models`、`llm`、`search`、`agents/`、`graph/`、`memory/`）、API 層 `src/api/`、UI 層 `src/ui/`;設定 `uv` 建置能涵蓋三者。維持單向相依:ui ─HTTP→ api ─import→ 核心,核心不 import api／ui
+- [x] 1.2 建立三個頂層套件:核心 `src/research_agent/`（`config`、`dto`、`llm`、`search`、`agents/`、`graph/`、`memory/`）、API 層 `src/api/`、UI 層 `src/ui/`;設定 `uv` 建置能涵蓋三者。維持單向相依:ui ─HTTP→ api ─import→ 核心,核心不 import api／ui
 - [x] 1.3 實作 `config.py`，用 `pydantic-settings` 寫 `Settings` 模型（LLM `base_url`、金鑰存 `SecretStr`、逐 agent 的模型 id、`memory_recent_rounds`(env `MEMORY_RECENT_ROUNDS`)≥1、`memory_compress_every_rounds`(env `MEMORY_COMPRESS_EVERY_ROUNDS`)≥1、`MEMORY_DATA_DIR`、`TAVILY_API_KEY` 存 `SecretStr`、API base URL），並做欄位層級驗證
 - [x] 1.4 新增 `.env.example`，記錄所有環境變數
 - [x] 1.5 測試：設定能從 env 載入；`memory_recent_rounds`／`memory_compress_every_rounds` 無效與必要金鑰缺漏時拋 `ValidationError`
 
 ## 2. 共用模型與 LLM client
 
-- [x] 2.1 在 `models.py` 定義共用 Pydantic DTO（`Finding`：摘要＋來源標題／網址;`Findings`：固定結構化的 finding 集合;`Report`、對話 `Round`）
+- [x] 2.1 在 `dto.py` 定義共用 Pydantic DTO（`Finding`：摘要＋來源標題／網址;`Findings`：固定結構化的 finding 集合;`Report`、對話 `Round`）
 - [x] 2.2 實作 `llm.py`：定義薄 `LLMClient` 介面，並以 OpenAI 相容（`openai` SDK，`base_url`／金鑰來自設定）實作，逐 agent 選模型 id
 - [x] 2.3 測試：模型驗證；llm 工廠串接（mock OpenAI 相容 client）
 
