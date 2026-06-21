@@ -41,8 +41,8 @@ class TestSettingsLoad:
         assert settings.coordinator_model == "strong-model"
         assert settings.web_search_model == "cheap-model"
         assert settings.report_model == "cheap-model"
-        assert settings.recent_rounds == 3
-        assert settings.compress_every_rounds == 4
+        assert settings.memory_recent_rounds == 3
+        assert settings.memory_compress_every_rounds == 4
         assert str(settings.memory_data_dir) == "data/sessions"
         assert settings.api_base_url == "http://api:8000"
 
@@ -62,8 +62,8 @@ class TestSettingsLoad:
             MEMORY_COMPRESS_EVERY_ROUNDS=None,
         )
         settings = _load()
-        assert settings.recent_rounds == 5
-        assert settings.compress_every_rounds == 5
+        assert settings.memory_recent_rounds == 5
+        assert settings.memory_compress_every_rounds == 5
 
     def test_api_base_url_default_when_absent(
         self, monkeypatch: pytest.MonkeyPatch
@@ -74,7 +74,7 @@ class TestSettingsLoad:
 
 class TestSettingsConfigValidation:
     @pytest.mark.parametrize("value", ["0", "-1"])
-    def test_recent_rounds_below_one_rejected(
+    def test_memory_recent_rounds_below_one_rejected(
         self, monkeypatch: pytest.MonkeyPatch, value: str
     ) -> None:
         _set_env(monkeypatch, MEMORY_RECENT_ROUNDS=value)
@@ -82,7 +82,7 @@ class TestSettingsConfigValidation:
             _load()
 
     @pytest.mark.parametrize("value", ["0", "-1"])
-    def test_compress_every_rounds_below_one_rejected(
+    def test_memory_compress_every_rounds_below_one_rejected(
         self, monkeypatch: pytest.MonkeyPatch, value: str
     ) -> None:
         _set_env(monkeypatch, MEMORY_COMPRESS_EVERY_ROUNDS=value)

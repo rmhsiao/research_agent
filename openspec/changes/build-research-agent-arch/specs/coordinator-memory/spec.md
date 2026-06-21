@@ -2,7 +2,7 @@
 
 ### Requirement: 近期上下文視窗有上限
 
-協調者的記憶 SHALL 在組裝給 LLM 的上下文時，只保留最近「近期保留輪數」（`recent_rounds`）
+協調者的記憶 SHALL 在組裝給 LLM 的上下文時，只保留最近「近期保留輪數」（`memory_recent_rounds`）
 輪對話，該值由環境變數設定。
 
 #### Scenario: 上下文只含近期保留輪數
@@ -18,7 +18,7 @@
 ### Requirement: 長期記憶非同步壓縮
 
 超出近期視窗的輪次 SHALL 由一個非同步任務壓縮成 session 層級的長期摘要，該任務每「壓縮
-間隔輪數」（`compress_every_rounds`）輪執行一次，該值由環境變數設定。壓縮 SHALL 不阻塞
+間隔輪數」（`memory_compress_every_rounds`）輪執行一次，該值由環境變數設定。壓縮 SHALL 不阻塞
 觸發它的那次請求。
 
 #### Scenario: 壓縮依週期執行

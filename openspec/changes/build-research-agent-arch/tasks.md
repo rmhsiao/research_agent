@@ -2,9 +2,9 @@
 
 - [x] 1.1 用 `uv add` 加入執行期相依（`langgraph`、`openai`、`fastapi`、`uvicorn`、`pydantic-settings`、`streamlit`、`tavily-python`）並在 `pyproject.toml` 鎖版本
 - [x] 1.2 建立三個頂層套件:核心 `src/research_agent/`（`config`、`models`、`llm`、`search`、`agents/`、`graph/`、`memory/`）、API 層 `src/api/`、UI 層 `src/ui/`;設定 `uv` 建置能涵蓋三者。維持單向相依:ui ─HTTP→ api ─import→ 核心,核心不 import api／ui
-- [x] 1.3 實作 `config.py`，用 `pydantic-settings` 寫 `Settings` 模型（LLM `base_url`、金鑰存 `SecretStr`、逐 agent 的模型 id、`recent_rounds`(env `MEMORY_RECENT_ROUNDS`)≥1、`compress_every_rounds`(env `MEMORY_COMPRESS_EVERY_ROUNDS`)≥1、`MEMORY_DATA_DIR`、`TAVILY_API_KEY` 存 `SecretStr`、API base URL），並做欄位層級驗證
+- [x] 1.3 實作 `config.py`，用 `pydantic-settings` 寫 `Settings` 模型（LLM `base_url`、金鑰存 `SecretStr`、逐 agent 的模型 id、`memory_recent_rounds`(env `MEMORY_RECENT_ROUNDS`)≥1、`memory_compress_every_rounds`(env `MEMORY_COMPRESS_EVERY_ROUNDS`)≥1、`MEMORY_DATA_DIR`、`TAVILY_API_KEY` 存 `SecretStr`、API base URL），並做欄位層級驗證
 - [x] 1.4 新增 `.env.example`，記錄所有環境變數
-- [x] 1.5 測試：設定能從 env 載入；`recent_rounds`／`compress_every_rounds` 無效與必要金鑰缺漏時拋 `ValidationError`
+- [x] 1.5 測試：設定能從 env 載入；`memory_recent_rounds`／`memory_compress_every_rounds` 無效與必要金鑰缺漏時拋 `ValidationError`
 
 ## 2. 共用模型與 LLM client
 
@@ -27,10 +27,10 @@
 ## 5. 協調者記憶子系統
 
 - [ ] 5.1 實作 `SessionStore`（每 session 存**完整聊天紀錄**＋長期摘要＋近期視窗狀態，以 `session_id` 隔離），以 file storage 為底（資料目錄下一 session 一檔、原子寫入：先寫 temp 再 rename），重啟後可讀回
-- [ ] 5.2 實作上下文組裝器，回傳 `長期摘要 ＋ 最近 recent_rounds 輪`
-- [ ] 5.3 實作非同步壓縮器：每 `compress_every_rounds` 輪把溢出輪次摘要進 session 摘要，為不阻塞的任務，錯誤記 log、不吞掉;壓縮**不刪**完整聊天紀錄
+- [ ] 5.2 實作上下文組裝器，回傳 `長期摘要 ＋ 最近 memory_recent_rounds 輪`
+- [ ] 5.3 實作非同步壓縮器：每 `memory_compress_every_rounds` 輪把溢出輪次摘要進 session 摘要，為不阻塞的任務，錯誤記 log、不吞掉;壓縮**不刪**完整聊天紀錄
 - [ ] 5.4 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
-- [ ] 5.5 測試：視窗上限為 `recent_rounds`／session 隔離／壓縮每 `compress_every_rounds` 輪觸發且不阻塞且不刪完整紀錄／摘要會餵進後續上下文／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確（mock LLM）
+- [ ] 5.5 測試：視窗上限為 `memory_recent_rounds`／session 隔離／壓縮每 `memory_compress_every_rounds` 輪觸發且不阻塞且不刪完整紀錄／摘要會餵進後續上下文／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確（mock LLM）
 
 ## 6. 協調者圖（orchestration）
 

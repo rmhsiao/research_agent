@@ -47,8 +47,8 @@
   `docker-compose.yml`。
 - **新增相依**：`langgraph`、`openai`（OpenAI 相容 LLM client）、`fastapi`、
   `tavily-python`（web 搜尋）、`streamlit`，以 `uv` 加進 `pyproject.toml`。
-- **設定面**：新增環境變數（LLM 的 `base_url`／金鑰／逐 agent 模型、`recent_rounds`
-  近期保留輪數、`compress_every_rounds` 壓縮間隔輪數、記憶資料目錄、`TAVILY_API_KEY`）與
+- **設定面**：新增環境變數（LLM 的 `base_url`／金鑰／逐 agent 模型、`memory_recent_rounds`
+  近期保留輪數、`memory_compress_every_rounds` 壓縮間隔輪數、記憶資料目錄、`TAVILY_API_KEY`）與
   一個型別化設定模型。
 - **執行時**：引入外部呼叫（LLM ＋ web search）、一個記憶壓縮的非同步背景任務、以及一個
   存放 session 記憶的 file storage 資料目錄。

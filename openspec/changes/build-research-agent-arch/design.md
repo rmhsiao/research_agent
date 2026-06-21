@@ -85,7 +85,7 @@ generate agent）、記憶壓縮策略、上下文組裝策略、以及 agent �
 ### 資料模型 —— 全程 Pydantic v2
 
 DTO 與服務型類別（記憶 store、壓縮器、各 agent 的 I/O）都用 Pydantic `BaseModel`。欄位
-層級驗證（如 `recent_rounds >= 1`、`compress_every_rounds >= 1`）下沉到 schema 的
+層級驗證（如 `memory_recent_rounds >= 1`、`memory_compress_every_rounds >= 1`）下沉到 schema 的
 `Field(ge=...)`，而非寫在 method 裡。
 設定用 `pydantic-settings` 讀 env。單一機制、免費拿到驗證與嚴格模式 —— 沒理由讓服務型
 類別特別 opt-out。
@@ -99,11 +99,11 @@ DTO 與服務型類別（記憶 store、壓縮器、各 agent 的 I/O）都用 P
 - 完整聊天紀錄與「帶給 LLM 的上下文」是**兩件事**:壓縮只把溢出輪次折成摘要、縮小餵給 LLM
   的內容,但**不刪**完整紀錄。完整紀錄供 UI 顯示與延續對話;`SessionStore` 另提供
   `list_sessions()` 與 `get_history(session_id)` 給 API 的 session 管理端點用。
-- 上下文組裝器回傳 `長期摘要 ＋ 最近 recent_rounds 輪`。
-- 壓縮是一個 `asyncio` 背景任務，每 `compress_every_rounds` 輪觸發一次；它用 LLM 把溢出
+- 上下文組裝器回傳 `長期摘要 ＋ 最近 memory_recent_rounds 輪`。
+- 壓縮是一個 `asyncio` 背景任務，每 `memory_compress_every_rounds` 輪觸發一次；它用 LLM 把溢出
   的輪次摘要起來、折進該 session 的摘要。它不得阻塞請求 —— fire-and-forget 任務，錯誤要記
   log、不可被吞進回應路徑。
-- `recent_rounds`（env `MEMORY_RECENT_ROUNDS`，近期保留輪數）與 `compress_every_rounds`
+- `memory_recent_rounds`（env `MEMORY_RECENT_ROUNDS`，近期保留輪數）與 `memory_compress_every_rounds`
   （env `MEMORY_COMPRESS_EVERY_ROUNDS`，壓縮間隔輪數）是環境變數。曾考慮：溢出時同步壓縮
   —— 否決，因為那會把 LLM 延遲加到使用者請求上。
 
@@ -154,8 +154,8 @@ session 時以 `GET /sessions/{id}/history` 載入過往對話顯示、後續查
   agent。
 - **fire-and-forget 壓縮可能默默出錯** → 明確記 log，日後再用 health／metrics 暴露；絕
   不把錯誤折進使用者回應（否則會誤報成功）。
-- **外部 LLM ＋ 搜尋的延遲／成本** → 子 agent 摘要用較便宜的模型，`recent_rounds`／
-  `compress_every_rounds` 可調以限制上下文大小。
+- **外部 LLM ＋ 搜尋的延遲／成本** → 子 agent 摘要用較便宜的模型，`memory_recent_rounds`／
+  `memory_compress_every_rounds` 可調以限制上下文大小。
 - **LangGraph API 變動** → 在 `pyproject.toml` 鎖版本；實作時對照文件確認當前的
   graph／state API。
 

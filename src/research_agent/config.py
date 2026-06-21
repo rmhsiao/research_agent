@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        populate_by_name=True,
         extra="ignore",
     )
 
@@ -28,12 +27,8 @@ class Settings(BaseSettings):
     report_model: str
 
     # Coordinator memory.
-    recent_rounds: int = Field(
-        default=5, ge=1, validation_alias="MEMORY_RECENT_ROUNDS"
-    )
-    compress_every_rounds: int = Field(
-        default=5, ge=1, validation_alias="MEMORY_COMPRESS_EVERY_ROUNDS"
-    )
+    memory_recent_rounds: int = Field(default=5, ge=1)
+    memory_compress_every_rounds: int = Field(default=5, ge=1)
     memory_data_dir: Path
 
     # Web search backend.
