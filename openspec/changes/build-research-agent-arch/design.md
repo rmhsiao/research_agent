@@ -141,6 +141,19 @@ schema:一組 finding 項目,各帶摘要、來源關鍵原文片段與來源出
 原文片段是為了讓下游 report agent 能直接引用原文而不必回頭重抓。查無結果時回項目為空的同型別
 `Findings`,讓協調者用穩定的形狀消費。
 
+### 報告輸出 —— 自由 HTML，惡意內容偵測延後
+
+report generate agent 產出的報告本體（LLM 寫的部分）刻意**不做 sanitization**：報告要能帶
+互動效果與豐富排版，過濾掉標籤就等於砍掉這個能力。代價是它建構所依據的 findings 來自不受
+信的網路內容，理論上可被間接注入而生出惡意 HTML／JS。本里程碑接受這個風險，改以**後續加上
+對產出報告的惡意內容偵測**收斂（程式碼留 TODO），而非現在就退回 allowlist 過濾。
+
+來源清單不在此列：它由 agent 依 `Finding` **決定性地**渲染、不經 LLM，標題與網址都做 HTML
+escape。但 escape 擋不住 `source_url` 本身是 `javascript:`／`data:` 這種 URI——那是**輸入
+驗證**問題、不是輸出編碼問題,屬產生 `Findings` 的信任邊界(web_search／`Finding` DTO 不變
+式:`source_url` 限 http(s))的職責,不擺進 report。此項與 snippet 淨化一起留待後續在
+web_search 側實作;report 信任 `source_url` 已是合法 http(s)。
+
 ### 前端與部署
 
 Streamlit 應用用 OpenAI SDK 呼叫 `/v1/chat/completions`（base URL 來自 env），把查詢放進
@@ -163,6 +176,8 @@ session 時以 `GET /sessions/{id}/history` 載入過往對話顯示、後續查
   `memory_compress_every_rounds` 可調以限制上下文大小。
 - **LangGraph API 變動** → 在 `pyproject.toml` 鎖版本；實作時對照文件確認當前的
   graph／state API。
+- **報告含未過濾的 HTML/JS（XSS）** → 為保留互動效果刻意不 sanitize 報告本體；接受此風
+  險，留 TODO，待後續加上對產出報告的惡意內容偵測。
 
 ## Open Questions
 
