@@ -1,6 +1,7 @@
-from typing import Any, Literal, Protocol, cast
+from abc import ABC, abstractmethod
+from typing import Any, Literal, cast
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel, PrivateAttr, SecretStr
 
@@ -12,33 +13,35 @@ class Message(BaseModel):
     content: str
 
 
-class LLMClient(Protocol):
+class LLMClient(BaseModel, ABC):
     """Thin seam over an LLM backend.
 
-    Kept deliberately minimal so the LLM provider/endpoint can be swapped
-    without touching agents. The model id is chosen per call, letting each
-    agent pick its own model from settings.
+    Methods are async because LLM calls are I/O-bound and run inside the
+    async graph/API. The model id is chosen per call so each agent can pick
+    its own model from settings. Kept minimal so the provider/endpoint can be
+    swapped without touching agents.
     """
 
-    def complete(self, messages: list[Message], model: str) -> str: ...
+    @abstractmethod
+    async def complete(self, messages: list[Message], model: str) -> str: ...
 
 
-class OpenAICompatibleLLMClient(BaseModel):
+class OpenAICompatibleLLMClient(LLMClient):
     """``LLMClient`` backed by any OpenAI-compatible endpoint."""
 
     base_url: str
     api_key: SecretStr
 
-    _client: OpenAI = PrivateAttr()
+    _client: AsyncOpenAI = PrivateAttr()
 
     def model_post_init(self, __context: Any) -> None:
-        self._client = OpenAI(
+        self._client = AsyncOpenAI(
             base_url=self.base_url,
             api_key=self.api_key.get_secret_value(),
         )
 
-    def complete(self, messages: list[Message], model: str) -> str:
-        response = self._client.chat.completions.create(
+    async def complete(self, messages: list[Message], model: str) -> str:
+        response = await self._client.chat.completions.create(
             model=model,
             messages=cast(
                 list[ChatCompletionMessageParam],

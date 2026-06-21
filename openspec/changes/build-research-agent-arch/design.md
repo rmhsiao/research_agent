@@ -69,12 +69,16 @@ agent 指定，不動程式碼即可抽換。一個輕薄的 `llm.py` 工廠集�
 ### 抽換接縫（介面抽象化）
 
 只把三個外部／儲存邊界抽成介面，其餘維持具體實作，等第二個需求出現再 refactor。三個介面
-抽象化的共同目的都是**保持抽換彈性**（換實作不動上層），不是為了測試 mock。
+抽象化的共同目的都是**保持抽換彈性**（換實作不動上層），不是為了測試 mock。介面以 ABC
+（`BaseModel, ABC` ＋ `@abstractmethod`）定義 —— 我們自有全部實作，繼承能拿到實例化層級的
+抽象方法強制與明確的型別關係。**對外網路呼叫的接縫方法採 async**（LLM、搜尋）—— 圖與 API
+都在 async 之上跑，網路呼叫若同步會阻塞 event loop；`SessionStore` 是本機檔案 I/O、量小且
+快，維持同步、不為它引入 async 複雜度。
 
-- **`LLMClient`** —— 形狀 `complete(messages, model) -> str`。具體實作為 OpenAI 相容
-  client。介面讓 LLM 供應商／端點可被抽換而不動 agent；維持薄，不包成厚抽象。
-- **`SearchClient`** —— 形狀 `search(query) -> list[SearchResult]`，後端錯誤 raise 且與
-  「查無結果」明確區分。具體實作為 Tavily；介面讓日後換別的搜尋後端時不動 agent。
+- **`LLMClient`** —— 形狀 `async complete(messages, model) -> str`。具體實作為 OpenAI 相容
+  client（`AsyncOpenAI`）。介面讓 LLM 供應商／端點可被抽換而不動 agent；維持薄，不包成厚抽象。
+- **`SearchClient`** —— 形狀 `async search(query) -> list[SearchResult]`，後端錯誤 raise 且與
+  「查無結果」明確區分。具體實作為 Tavily（`AsyncTavilyClient`）；介面讓日後換別的搜尋後端時不動 agent。
 - **`SessionStore`** —— 形狀 `load(session_id) -> SessionState` / `save(session_id,
   state)`。現為 file storage；介面讓日後換 Redis／DB 時不動 agent，也讓上層不認識儲存細節。
 

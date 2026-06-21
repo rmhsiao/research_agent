@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from pydantic import SecretStr
 from pytest_mock import MockerFixture
 
@@ -34,9 +35,11 @@ def _completion(content: str | None) -> SimpleNamespace:
 def _patch_openai(
     mocker: MockerFixture, content: str | None = "answer"
 ) -> SimpleNamespace:
-    mock_class = mocker.patch("research_agent.llm.OpenAI")
+    mock_class = mocker.patch("research_agent.llm.AsyncOpenAI")
     mock_client = mock_class.return_value
-    mock_client.chat.completions.create.return_value = _completion(content)
+    mock_client.chat.completions.create = mocker.AsyncMock(
+        return_value=_completion(content)
+    )
     return SimpleNamespace(klass=mock_class, client=mock_client)
 
 
@@ -54,26 +57,41 @@ class TestBuildLLMClient:
 
 
 class TestComplete:
-    def test_passes_model_and_messages_and_returns_content(
+    async def test_passes_model_and_messages_and_returns_content(
         self, mocker: MockerFixture
     ) -> None:
         mocks = _patch_openai(mocker, content="hello")
         client: LLMClient = build_llm_client(_make_settings())
-        result = client.complete(
+        result = await client.complete(
             [Message(role="user", content="hi")], model="cheap-model"
         )
         assert result == "hello"
-        mocks.client.chat.completions.create.assert_called_once_with(
+        mocks.client.chat.completions.create.assert_awaited_once_with(
             model="cheap-model",
             messages=[{"role": "user", "content": "hi"}],
         )
 
-    def test_empty_content_returns_empty_string(
+    async def test_empty_content_returns_empty_string(
         self, mocker: MockerFixture
     ) -> None:
         _patch_openai(mocker, content=None)
         client = build_llm_client(_make_settings())
-        result = client.complete(
+        result = await client.complete(
             [Message(role="user", content="hi")], model="cheap-model"
         )
         assert result == ""
+
+
+class TestCompleteError:
+    async def test_backend_error_propagates(
+        self, mocker: MockerFixture
+    ) -> None:
+        mocks = _patch_openai(mocker)
+        mocks.client.chat.completions.create.side_effect = RuntimeError(
+            "backend down"
+        )
+        client = build_llm_client(_make_settings())
+        with pytest.raises(RuntimeError, match="backend down"):
+            await client.complete(
+                [Message(role="user", content="hi")], model="cheap-model"
+            )
