@@ -20,9 +20,9 @@
 
 ## 4. report generate agent
 
-- [ ] 4.1 實作 report generate agent：`Findings` ＋ 查詢 → 可獨立開啟的 HTML 報告
-- [ ] 4.2 處理空結果：說明「查無資訊」、不捏造內容
-- [ ] 4.3 測試：非空結果渲染出含來源的 HTML／空結果路徑（mock LLM）
+- [x] 4.1 實作 report generate agent：`Findings` ＋ 查詢 → 可獨立開啟的 HTML 報告
+- [x] 4.2 處理空結果：說明「查無資訊」、不捏造內容
+- [x] 4.3 測試：非空結果渲染出含來源的 HTML／空結果路徑（mock LLM）
 
 ## 5. 協調者記憶子系統
 
