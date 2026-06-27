@@ -28,10 +28,10 @@
 
 ## 5. 協調者記憶子系統
 
-- [ ] 5.1 實作 `SessionStore`（每 session 存**完整聊天紀錄**＋長期摘要＋近期視窗狀態，以 `session_id` 隔離），以 file storage 為底（資料目錄下一 session 一檔、原子寫入：先寫 temp 再 rename），重啟後可讀回
-- [ ] 5.2 實作上下文組裝器，回傳最近 `memory_recent_rounds` 輪（長期摘要的併入延後至 `## 10`）
-- [ ] 5.3 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
-- [ ] 5.4 測試：視窗上限為 `memory_recent_rounds`／session 隔離／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確
+- [x] 5.1 實作 `SessionStore`（每 session 存**完整聊天紀錄**＋長期摘要＋近期視窗狀態，以 `session_id` 隔離），以 file storage 為底（資料目錄下一 session 一檔、原子寫入：先寫 temp 再 rename），重啟後可讀回
+- [x] 5.2 實作上下文組裝器，回傳最近 `memory_recent_rounds` 輪（長期摘要的併入延後至 `## 10`）
+- [x] 5.3 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
+- [x] 5.4 測試：視窗上限為 `memory_recent_rounds`／session 隔離／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確
 
 ## 6. 協調者圖（orchestration）
 
