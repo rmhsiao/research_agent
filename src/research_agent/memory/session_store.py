@@ -2,6 +2,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -72,7 +73,9 @@ class FileSessionStore(SessionStore):
     def save(self, session_id: str, state: SessionState) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         path = self._path_for(session_id)
-        temp = path.with_name(path.name + ".tmp")
+        # Unique temp name per write so concurrent saves of the same session
+        # don't clobber each other's temp file before the atomic replace.
+        temp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
         temp.write_text(state.model_dump_json(), encoding="utf-8")
         os.replace(temp, path)
 
