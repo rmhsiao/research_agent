@@ -50,13 +50,32 @@ src/
 ui 不直接 import 核心,只透過 HTTP 與 api 對話。如此核心可獨立測試與重用,api／ui 只是
 它的兩種對外載體。memory 與 graph 各自成子套件,因為它們各有足夠獨立的邏輯。
 
-### Agent 框架 —— LangGraph ＋ 共用型別化狀態
+### Agent 框架 —— 協調者統籌、通用 sub-agent 調度
 
-協調者是一個 `StateGraph`；web-search 與 report-generate 是協調者路由過去的節點。狀態
-是一個型別化模型，承載 `query`、`session_id`、`findings`、`report`。一條條件邊讓協調者
-能折返再搜尋、或前進到報告生成（即「資料是否足夠」的判斷）。曾考慮：不用 LangGraph、自
-己手刻統籌 —— 否決，因為使用者指定用 LangGraph，且它的 checkpointer／狀態機制正是我們
-需要的路由底座。
+協調者是統籌整條研究流程的決策節點（用 `coordinator_model`），架在 LangGraph
+`StateGraph` 上。流程**不寫死**：協調者逐輪決定要派什麼任務給哪些 sub-agent、或結束。
+`web_search` 與 `report_generate` 都是**通用 sub-agent**，以名稱註冊進 registry；協調者
+依 name 與 description 挑選。**新增 sub-agent 只需註冊，圖不變。** sub-agent 之間不互動，
+只從協調者接收任務、回傳成果。
+
+調度機制：協調者每輪輸出一個結構化決策（JSON）—— 一段選填的使用者文字、一組
+`{sub_agent, task}` 派工、以及是否結束。一個**通用 `dispatch` 節點**以 `Send` 對每筆派工
+平行起一個分支，依名稱在 registry 取出對應 sub-agent 執行；各 sub-agent 回傳要寫的**具體
+狀態 channel**（`web_search → findings`、`report → report`），`findings` 經 reducer 合併、
+不互相覆蓋。LLM 回的 JSON 解析失敗即 **raise**（協調者無法決策是真實失敗，不靜默降級）。
+
+流程是協調者與 dispatch 之間的迴圈：`coordinator →（派工）→ dispatch → coordinator → …`，
+直到協調者結束、或達 `coordinator_max_rounds` 上限即以現有成果收尾，避免無限循環與失控成本。
+
+回覆模型：一次流程結束的回覆**以協調者的文字為主**；本次若有 report sub-agent 產出 HTML
+報告，就把報告附上（協調者是對話門面，報告是它呈現的產物）。
+
+曾考慮：把 report 當寫死的終點、協調者只負責拆查詢 —— 否決，因為使用者要的是由協調者握住
+「調用哪個 sub-agent、何時收尾」的彈性流程，report 也應是被調度的 sub-agent。也曾考慮：把
+sub-agent 結果做成完全泛用的 envelope —— 否決（premature），目前結果端用具體 channel
+（`findings`、`report`），等出現更多種 sub-agent 再抽。也曾考慮：不用 LangGraph 自己手刻
+統籌 —— 否決，因為使用者指定用 LangGraph，且它的 `Send` fan-out／reducer／條件邊正是承載
+這套調度迴圈所需的底座。
 
 ### LLM 介面 —— OpenAI 相容，可設定
 
@@ -121,7 +140,8 @@ session 選單與延續對話用;未知 session 回 not found,而非空的 200�
 最後一則 user 訊息;`session_id`（及未來的額外欄
 位）走請求 body 的**額外欄位**帶入 —— client 端用 OpenAI SDK 的 `extra_body` 送、伺服端
 從 body 取出,標準 schema 維持乾淨。回應是標準 ChatCompletion 物件,assistant 訊息的
-content 即 HTML 報告。端點用 `async def`（圖與 LLM 呼叫都是 I/O 密集）。基礎設施錯誤回非
+content 即協調者的回覆（以其文字為主,研究輪附上 report sub-agent 的 HTML 報告）。端點用
+`async def`（圖與 LLM 呼叫都是 I/O 密集）。基礎設施錯誤回非
 2xx 的 OpenAI 風格 error JSON,絕不收斂成「200 夾帶空報告」—— 與「失敗一律 raise、不隱
 藏」一致。
 

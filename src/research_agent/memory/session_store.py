@@ -17,7 +17,7 @@ class SessionState(BaseModel):
 
     ``rounds`` is the complete chat history (never trimmed by compression).
     ``summary`` is the long-term summary folded in by async compression; it
-    stays empty until that milestone (``## 10``) fills it.
+    stays empty until that milestone (``## 11``) fills it.
     """
 
     rounds: list[Round] = Field(default_factory=list)
