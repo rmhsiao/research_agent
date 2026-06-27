@@ -35,13 +35,13 @@
 
 ## 6. 協調者圖骨架（fan-out）
 
-- [ ] 6.1 定義圖狀態模型（`query`、`session_id`、`subqueries`、累積 `findings`（reducer 合併）、`report`）
-- [ ] 6.2 實作 `coordinator` 節點：用 `coordinator_model` 把查詢（含近期記憶上下文）拆解成 1～N 條子查詢；查詢已夠聚焦就回單條
-- [ ] 6.3 用 LangGraph `Send`（依 coordinator 產出的子查詢）對每個子查詢平行起 `web_search` 分支，結果經 reducer 合併進累積 `findings`
-- [ ] 6.4 組裝 `StateGraph`：`coordinator → web_search(Send) → report`，編譯成可呼叫的協調者
-- [ ] 6.5 整合記憶：搜尋前讀近期上下文餵給 coordinator、流程結束後追加該輪並存回
-- [ ] 6.6 確保子 agent 的基礎設施失敗（含任一平行分支）會往上拋出該次流程
-- [ ] 6.7 測試：完整流程（拆查詢→平行搜尋→合併→報告）／reducer 正確合併並行結果／單一子查詢正常／記憶讀寫／任一子 agent 失敗往上拋（mock 各 agent 與 LLM）
+- [x] 6.1 定義圖狀態模型（`query`、`session_id`、`subqueries`、累積 `findings`（reducer 合併）、`report`）
+- [x] 6.2 實作 `coordinator` 節點：用 `coordinator_model` 把查詢（含近期記憶上下文）拆解成 1～N 條子查詢；查詢已夠聚焦就回單條
+- [x] 6.3 用 LangGraph `Send`（依 coordinator 產出的子查詢）對每個子查詢平行起 `web_search` 分支，結果經 reducer 合併進累積 `findings`
+- [x] 6.4 組裝 `StateGraph`：`coordinator → web_search(Send) → report`，編譯成可呼叫的協調者
+- [x] 6.5 整合記憶：搜尋前讀近期上下文餵給 coordinator、流程結束後追加該輪並存回
+- [x] 6.6 確保子 agent 的基礎設施失敗（含任一平行分支）會往上拋出該次流程
+- [x] 6.7 測試：完整流程（拆查詢→平行搜尋→合併→報告）／reducer 正確合併並行結果／單一子查詢正常／記憶讀寫／任一子 agent 失敗往上拋（mock 各 agent 與 LLM）
 
 ## 7. 協調者折返重搜（迴圈與上限）
 
