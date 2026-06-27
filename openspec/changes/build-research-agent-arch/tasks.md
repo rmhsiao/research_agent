@@ -28,11 +28,10 @@
 
 ## 5. 協調者記憶子系統
 
-- [ ] 5.1 實作 `SessionStore`（每 session 存**完整聊天紀錄**＋長期摘要＋近期視窗狀態，以 `session_id` 隔離），以 file storage 為底（資料目錄下一 session 一檔、原子寫入：先寫 temp 再 rename），重啟後可讀回
-- [ ] 5.2 實作上下文組裝器，回傳 `長期摘要 ＋ 最近 memory_recent_rounds 輪`
-- [ ] 5.3 實作非同步壓縮器：每 `memory_compress_every_rounds` 輪把溢出輪次摘要進 session 摘要，為不阻塞的任務，錯誤記 log、不吞掉;壓縮**不刪**完整聊天紀錄
-- [ ] 5.4 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
-- [ ] 5.5 測試：視窗上限為 `memory_recent_rounds`／session 隔離／壓縮每 `memory_compress_every_rounds` 輪觸發且不阻塞且不刪完整紀錄／摘要會餵進後續上下文／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確（mock LLM）
+- [x] 5.1 實作 `SessionStore`（每 session 存**完整聊天紀錄**＋長期摘要＋近期視窗狀態，以 `session_id` 隔離），以 file storage 為底（資料目錄下一 session 一檔、原子寫入：先寫 temp 再 rename），重啟後可讀回
+- [x] 5.2 實作上下文組裝器，回傳最近 `memory_recent_rounds` 輪（長期摘要的併入延後至 `## 10`）
+- [x] 5.3 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
+- [x] 5.4 測試：視窗上限為 `memory_recent_rounds`／session 隔離／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確
 
 ## 6. 協調者圖（orchestration）
 
@@ -62,3 +61,10 @@
 - [ ] 9.2 為 Streamlit 前端寫 Dockerfile
 - [ ] 9.3 寫 `docker-compose.yml`，串起 api ＋ ui，經 env 注入機密與 API URL，把記憶資料目錄掛成 named volume，必要設定缺漏時快速失敗
 - [ ] 9.4 驗證 `docker compose up` 能帶起兩個服務、且 UI 連得到 API
+
+## 10. 非同步壓縮（長期記憶摘要）
+
+- [ ] 10.1 實作非同步壓縮器：用 LLM 把溢出輪次摘要折進 session 的長期摘要，為 fire-and-forget 的不阻塞任務,錯誤記 log、不吞掉;壓縮**不刪**完整聊天紀錄
+- [ ] 10.2 上下文組裝器納入長期摘要：把 `5.2` 的組裝結果擴充為 `長期摘要 ＋ 最近 memory_recent_rounds 輪`
+- [ ] 10.3 把壓縮觸發接進流程：每 `memory_compress_every_rounds` 輪(於追加輪次的路徑)觸發一次,不得阻塞請求
+- [ ] 10.4 測試：壓縮每 `memory_compress_every_rounds` 輪觸發且不阻塞且不刪完整紀錄／摘要折進 session 摘要並經組裝器餵進後續上下文（mock LLM）
