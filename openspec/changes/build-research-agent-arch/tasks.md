@@ -29,42 +29,52 @@
 ## 5. 協調者記憶子系統
 
 - [x] 5.1 實作 `SessionStore`（每 session 存**完整聊天紀錄**＋長期摘要＋近期視窗狀態，以 `session_id` 隔離），以 file storage 為底（資料目錄下一 session 一檔、原子寫入：先寫 temp 再 rename），重啟後可讀回
-- [x] 5.2 實作上下文組裝器，回傳最近 `memory_recent_rounds` 輪（長期摘要的併入延後至 `## 10`）
+- [x] 5.2 實作上下文組裝器，回傳最近 `memory_recent_rounds` 輪（長期摘要的併入延後至 `## 11`）
 - [x] 5.3 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
 - [x] 5.4 測試：視窗上限為 `memory_recent_rounds`／session 隔離／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確
 
-## 6. 協調者圖（orchestration）
+## 6. 協調者圖骨架（fan-out）
 
-- [ ] 6.1 定義圖狀態模型（`query`、`session_id`、`findings`、`report`）
-- [ ] 6.2 組裝 LangGraph `StateGraph`，串起 web-search 與 report-generate 節點，並用條件邊做「資料是否足夠」的判斷
-- [ ] 6.3 整合記憶：搜尋前讀上下文、流程後追加該輪
-- [ ] 6.4 確保子 agent 的基礎設施失敗會往上拋出該次流程
-- [ ] 6.5 測試：完整流程（pass）／資料足夠就停止搜尋／子 agent 失敗會往上拋（mock 各 agent）
+- [ ] 6.1 定義圖狀態模型（`query`、`session_id`、`subqueries`、累積 `findings`（reducer 合併）、`report`）
+- [ ] 6.2 實作 `coordinator` 節點：用 `coordinator_model` 把查詢（含近期記憶上下文）拆解成 1～N 條子查詢；查詢已夠聚焦就回單條
+- [ ] 6.3 用 LangGraph `Send`（依 coordinator 產出的子查詢）對每個子查詢平行起 `web_search` 分支，結果經 reducer 合併進累積 `findings`
+- [ ] 6.4 組裝 `StateGraph`：`coordinator → web_search(Send) → report`，編譯成可呼叫的協調者
+- [ ] 6.5 整合記憶：搜尋前讀近期上下文餵給 coordinator、流程結束後追加該輪並存回
+- [ ] 6.6 確保子 agent 的基礎設施失敗（含任一平行分支）會往上拋出該次流程
+- [ ] 6.7 測試：完整流程（拆查詢→平行搜尋→合併→報告）／reducer 正確合併並行結果／單一子查詢正常／記憶讀寫／任一子 agent 失敗往上拋（mock 各 agent 與 LLM）
 
-## 7. FastAPI 服務（`api`，OpenAI 相容）
+## 7. 協調者折返重搜（迴圈與上限）
 
-- [ ] 7.1 實作 FastAPI app，含 OpenAI Chat Completions 相容端點 `POST /v1/chat/completions`（query 取自 `messages`、`session_id` 從 body 額外欄位取出）與 `GET /health`
-- [ ] 7.2 回應組成標準 ChatCompletion 物件,assistant content 放 HTML 報告;基礎設施錯誤對應成非 2xx 的 OpenAI 風格 error（絕不回 200 夾帶空報告）
-- [ ] 7.3 加 session 管理端點：`GET /sessions`（接 `list_sessions()`）與 `GET /sessions/{session_id}/history`（接 `get_history()`,未知 session 回 not found）
-- [ ] 7.4 測試：研究請求成功／缺 user 訊息 → 驗證錯誤／`extra_body` 帶 session 被正確取出／下游失敗 → 錯誤狀態／健康檢查／`GET /sessions` 含空清單／`GET /sessions/{id}/history` 取得紀錄與未知 session → not found（TestClient、mock 協調者與 store）
+- [ ] 7.1 設定加 `coordinator_max_search_rounds`(env `COORDINATOR_MAX_SEARCH_ROUNDS`)≥1，並更新 `.env.example`
+- [ ] 7.2 圖狀態加重搜輪數欄位，承載折返次數
+- [ ] 7.3 讓 `coordinator` 節點帶累積 findings 重新決策：足夠→出報告；不足→依缺口改寫子查詢再搜一輪；達上限→以現有結果出報告
+- [ ] 7.4 接上條件路由與迴圈：`web_search → coordinator`，`coordinator →（子查詢｜report）`
+- [ ] 7.5 測試：資料足夠就停搜／不足改寫重搜且新結果併入／達上限即停不無限折返（mock 各 agent 與 LLM）
 
-## 8. Streamlit 前端（`ui`）
+## 8. FastAPI 服務（`api`，OpenAI 相容）
 
-- [ ] 8.1 實作 `ui/streamlit_app.py`：查詢輸入,用 OpenAI SDK 呼叫 `/v1/chat/completions`、`session_id` 經 `extra_body` 帶入,渲染回傳 content 的 HTML
-- [ ] 8.2 加 session 選單：內容來自 `GET /sessions`,選既有 session 時以 `GET /sessions/{id}/history` 載入並顯示過往對話、後續查詢延續同一 session,並支援開新 session
-- [ ] 8.3 API 回錯誤狀態時顯示錯誤訊息
-- [ ] 8.4 手動驗證註記：對著執行中的 API 端到端送一次查詢,並驗證 session 選單能延續既有對話
+- [ ] 8.1 實作 FastAPI app，含 OpenAI Chat Completions 相容端點 `POST /v1/chat/completions`（query 取自 `messages`、`session_id` 從 body 額外欄位取出）與 `GET /health`
+- [ ] 8.2 回應組成標準 ChatCompletion 物件,assistant content 放 HTML 報告;基礎設施錯誤對應成非 2xx 的 OpenAI 風格 error（絕不回 200 夾帶空報告）
+- [ ] 8.3 加 session 管理端點：`GET /sessions`（接 `list_sessions()`）與 `GET /sessions/{session_id}/history`（接 `get_history()`,未知 session 回 not found）
+- [ ] 8.4 測試：研究請求成功／缺 user 訊息 → 驗證錯誤／`extra_body` 帶 session 被正確取出／下游失敗 → 錯誤狀態／健康檢查／`GET /sessions` 含空清單／`GET /sessions/{id}/history` 取得紀錄與未知 session → not found（TestClient、mock 協調者與 store）
 
-## 9. 部署（Docker／Compose）
+## 9. Streamlit 前端（`ui`）
 
-- [ ] 9.1 為 API 服務寫 Dockerfile（以 uv 建置、跑 uvicorn）
-- [ ] 9.2 為 Streamlit 前端寫 Dockerfile
-- [ ] 9.3 寫 `docker-compose.yml`，串起 api ＋ ui，經 env 注入機密與 API URL，把記憶資料目錄掛成 named volume，必要設定缺漏時快速失敗
-- [ ] 9.4 驗證 `docker compose up` 能帶起兩個服務、且 UI 連得到 API
+- [ ] 9.1 實作 `ui/streamlit_app.py`：查詢輸入,用 OpenAI SDK 呼叫 `/v1/chat/completions`、`session_id` 經 `extra_body` 帶入,渲染回傳 content 的 HTML
+- [ ] 9.2 加 session 選單：內容來自 `GET /sessions`,選既有 session 時以 `GET /sessions/{id}/history` 載入並顯示過往對話、後續查詢延續同一 session,並支援開新 session
+- [ ] 9.3 API 回錯誤狀態時顯示錯誤訊息
+- [ ] 9.4 手動驗證註記：對著執行中的 API 端到端送一次查詢,並驗證 session 選單能延續既有對話
 
-## 10. 非同步壓縮（長期記憶摘要）
+## 10. 部署（Docker／Compose）
 
-- [ ] 10.1 實作非同步壓縮器：用 LLM 把溢出輪次摘要折進 session 的長期摘要，為 fire-and-forget 的不阻塞任務,錯誤記 log、不吞掉;壓縮**不刪**完整聊天紀錄
-- [ ] 10.2 上下文組裝器納入長期摘要：把 `5.2` 的組裝結果擴充為 `長期摘要 ＋ 最近 memory_recent_rounds 輪`
-- [ ] 10.3 把壓縮觸發接進流程：每 `memory_compress_every_rounds` 輪(於追加輪次的路徑)觸發一次,不得阻塞請求
-- [ ] 10.4 測試：壓縮每 `memory_compress_every_rounds` 輪觸發且不阻塞且不刪完整紀錄／摘要折進 session 摘要並經組裝器餵進後續上下文（mock LLM）
+- [ ] 10.1 為 API 服務寫 Dockerfile（以 uv 建置、跑 uvicorn）
+- [ ] 10.2 為 Streamlit 前端寫 Dockerfile
+- [ ] 10.3 寫 `docker-compose.yml`，串起 api ＋ ui，經 env 注入機密與 API URL，把記憶資料目錄掛成 named volume，必要設定缺漏時快速失敗
+- [ ] 10.4 驗證 `docker compose up` 能帶起兩個服務、且 UI 連得到 API
+
+## 11. 非同步壓縮（長期記憶摘要）
+
+- [ ] 11.1 實作非同步壓縮器：用 LLM 把溢出輪次摘要折進 session 的長期摘要，為 fire-and-forget 的不阻塞任務,錯誤記 log、不吞掉;壓縮**不刪**完整聊天紀錄
+- [ ] 11.2 上下文組裝器納入長期摘要：把 `5.2` 的組裝結果擴充為 `長期摘要 ＋ 最近 memory_recent_rounds 輪`
+- [ ] 11.3 把壓縮觸發接進流程：每 `memory_compress_every_rounds` 輪(於追加輪次的路徑)觸發一次,不得阻塞請求
+- [ ] 11.4 測試：壓縮每 `memory_compress_every_rounds` 輪觸發且不阻塞且不刪完整紀錄／摘要折進 session 摘要並經組裝器餵進後續上下文（mock LLM）

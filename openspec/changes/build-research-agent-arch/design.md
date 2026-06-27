@@ -50,13 +50,33 @@ src/
 ui 不直接 import 核心,只透過 HTTP 與 api 對話。如此核心可獨立測試與重用,api／ui 只是
 它的兩種對外載體。memory 與 graph 各自成子套件,因為它們各有足夠獨立的邏輯。
 
-### Agent 框架 —— LangGraph ＋ 共用型別化狀態
+### Agent 框架 —— coordinator agent（supervisor）架在 LangGraph 上
 
-協調者是一個 `StateGraph`；web-search 與 report-generate 是協調者路由過去的節點。狀態
-是一個型別化模型，承載 `query`、`session_id`、`findings`、`report`。一條條件邊讓協調者
-能折返再搜尋、或前進到報告生成（即「資料是否足夠」的判斷）。曾考慮：不用 LangGraph、自
-己手刻統籌 —— 否決，因為使用者指定用 LangGraph，且它的 checkpointer／狀態機制正是我們
-需要的路由底座。
+協調者是一個 **coordinator agent**：規劃整條研究流程「下一步往哪走」的決策大腦，用
+`coordinator_model` 實作。它**架在** LangGraph `StateGraph` 之上 —— graph 是承載狀態與
+路由的程式底座，coordinator agent 是居中做決策的節點，兩者不是同一回事。這是 supervisor
+模式：coordinator 居中調度，`web_search`／`report_generate` 是它派工的 worker。
+
+圖串起三種節點：`coordinator`（決策大腦）、`web_search`（worker）、`report`（worker）。
+每次進到 `coordinator`，它看 query、近期記憶、目前累積的 `findings` 與重搜輪數，輸出兩種
+決定之一：**要搜的一組子查詢**（拆解／依缺口改寫，1～N 條）、或**「資料夠了，出報告」**。
+把「拆查詢」與「判足夠」收進同一個節點，是因為它們是同一個大腦的兩面 ——「現在這步該往
+哪」，不該拆成兩個節點。
+
+狀態是一個型別化模型，承載 `query`、`session_id`、當輪 `subqueries`、累積 `findings`、
+重搜輪數與 `report`。平行 fan-out 用 `Send` map-reduce：coordinator 決定要搜時，路由函式
+依其產出的子查詢回傳一組 `Send("web_search", …)`，LangGraph 平行起多個 web_search 分支；
+各分支寫回的 finding 經狀態上的 **reducer** 合併、不互相覆蓋。理由：研究查詢天然會拆成多個
+子題，平行搜尋能一次覆蓋多面向、比單一查詢線性搜尋的覆蓋率高；reducer 是安全合併並行結果
+的標準作法。
+
+流程是 coordinator 與 web_search 之間的迴圈：`coordinator →（搜）→ web_search →
+coordinator`，直到 coordinator 判定足夠才走 `report`。重搜上限（`coordinator_max_search_rounds`，
+env 驅動）約束折返次數，達上限即以現有結果進報告，避免無限折返與失控成本。曾考慮：把流程
+順序寫死成線性 `search→report`、LLM 只做局部選擇 —— 否決，因為「步驟的順序與方向」本身就該
+由 coordinator agent 規劃，寫死 topology 就沒有 coordinator agent 可言。也曾考慮：不用
+LangGraph 自己手刻統籌 —— 否決，因為使用者指定用 LangGraph，且它的 `Send` fan-out／reducer／
+條件邊正是承載這個 supervisor 路由所需的底座。
 
 ### LLM 介面 —— OpenAI 相容，可設定
 
