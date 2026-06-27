@@ -7,4 +7,8 @@ def assemble_context(state: SessionState, recent_rounds: int) -> list[Round]:
 
     Long-term summary inclusion is deferred to async compression (``## 10``).
     """
+    # Guard recent_rounds <= 0: rounds[-0:] is rounds[0:], which would return
+    # the whole history instead of an empty window.
+    if recent_rounds <= 0:
+        return []
     return state.rounds[-recent_rounds:]

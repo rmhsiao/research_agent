@@ -99,3 +99,9 @@ class TestContextWindow:
         assert [r.query for r in window] == [
             f"q{i}" for i in range(total - expected, total)
         ]
+
+    @pytest.mark.parametrize("recent", [0, -1])
+    def test_non_positive_window_is_empty(self, recent: int) -> None:
+        # rounds[-0:] would return the whole history; guard yields [].
+        state = _state("q0", "q1", "q2")
+        assert assemble_context(state, recent) == []
