@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     web_search_model: str
     report_model: str
 
+    # Coordinator orchestration loop bound.
+    coordinator_max_rounds: int = Field(default=5, ge=1)
+
     # Coordinator memory.
     memory_recent_rounds: int = Field(default=5, ge=1)
     memory_compress_every_rounds: int = Field(default=5, ge=1)
