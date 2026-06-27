@@ -50,33 +50,32 @@ src/
 ui 不直接 import 核心,只透過 HTTP 與 api 對話。如此核心可獨立測試與重用,api／ui 只是
 它的兩種對外載體。memory 與 graph 各自成子套件,因為它們各有足夠獨立的邏輯。
 
-### Agent 框架 —— coordinator agent（supervisor）架在 LangGraph 上
+### Agent 框架 —— 協調者統籌、通用 sub-agent 調度
 
-協調者是一個 **coordinator agent**：規劃整條研究流程「下一步往哪走」的決策大腦，用
-`coordinator_model` 實作。它**架在** LangGraph `StateGraph` 之上 —— graph 是承載狀態與
-路由的程式底座，coordinator agent 是居中做決策的節點，兩者不是同一回事。這是 supervisor
-模式：coordinator 居中調度，`web_search`／`report_generate` 是它派工的 worker。
+協調者是統籌整條研究流程的決策節點（用 `coordinator_model`），架在 LangGraph
+`StateGraph` 上。流程**不寫死**：協調者逐輪決定要派什麼任務給哪些 sub-agent、或結束。
+`web_search` 與 `report_generate` 都是**通用 sub-agent**，以名稱註冊進 registry；協調者
+依 name 與 description 挑選。**新增 sub-agent 只需註冊，圖不變。** sub-agent 之間不互動，
+只從協調者接收任務、回傳成果。
 
-圖串起三種節點：`coordinator`（決策大腦）、`web_search`（worker）、`report`（worker）。
-每次進到 `coordinator`，它看 query、近期記憶、目前累積的 `findings` 與重搜輪數，輸出兩種
-決定之一：**要搜的一組子查詢**（拆解／依缺口改寫，1～N 條）、或**「資料夠了，出報告」**。
-把「拆查詢」與「判足夠」收進同一個節點，是因為它們是同一個大腦的兩面 ——「現在這步該往
-哪」，不該拆成兩個節點。
+調度機制：協調者每輪輸出一個結構化決策（JSON）—— 一段選填的使用者文字、一組
+`{sub_agent, task}` 派工、以及是否結束。一個**通用 `dispatch` 節點**以 `Send` 對每筆派工
+平行起一個分支，依名稱在 registry 取出對應 sub-agent 執行；各 sub-agent 回傳要寫的**具體
+狀態 channel**（`web_search → findings`、`report → report`），`findings` 經 reducer 合併、
+不互相覆蓋。LLM 回的 JSON 解析失敗即 **raise**（協調者無法決策是真實失敗，不靜默降級）。
 
-狀態是一個型別化模型，承載 `query`、`session_id`、當輪 `subqueries`、累積 `findings`、
-重搜輪數與 `report`。平行 fan-out 用 `Send` map-reduce：coordinator 決定要搜時，路由函式
-依其產出的子查詢回傳一組 `Send("web_search", …)`，LangGraph 平行起多個 web_search 分支；
-各分支寫回的 finding 經狀態上的 **reducer** 合併、不互相覆蓋。理由：研究查詢天然會拆成多個
-子題，平行搜尋能一次覆蓋多面向、比單一查詢線性搜尋的覆蓋率高；reducer 是安全合併並行結果
-的標準作法。
+流程是協調者與 dispatch 之間的迴圈：`coordinator →（派工）→ dispatch → coordinator → …`，
+直到協調者結束、或達 `coordinator_max_rounds` 上限即以現有成果收尾，避免無限循環與失控成本。
 
-流程是 coordinator 與 web_search 之間的迴圈：`coordinator →（搜）→ web_search →
-coordinator`，直到 coordinator 判定足夠才走 `report`。重搜上限（`coordinator_max_search_rounds`，
-env 驅動）約束折返次數，達上限即以現有結果進報告，避免無限折返與失控成本。曾考慮：把流程
-順序寫死成線性 `search→report`、LLM 只做局部選擇 —— 否決，因為「步驟的順序與方向」本身就該
-由 coordinator agent 規劃，寫死 topology 就沒有 coordinator agent 可言。也曾考慮：不用
-LangGraph 自己手刻統籌 —— 否決，因為使用者指定用 LangGraph，且它的 `Send` fan-out／reducer／
-條件邊正是承載這個 supervisor 路由所需的底座。
+回覆模型：一次流程結束的回覆**以協調者的文字為主**；本次若有 report sub-agent 產出 HTML
+報告，就把報告附上（協調者是對話門面，報告是它呈現的產物）。
+
+曾考慮：把 report 當寫死的終點、協調者只負責拆查詢 —— 否決，因為使用者要的是由協調者握住
+「調用哪個 sub-agent、何時收尾」的彈性流程，report 也應是被調度的 sub-agent。也曾考慮：把
+sub-agent 結果做成完全泛用的 envelope —— 否決（premature），目前結果端用具體 channel
+（`findings`、`report`），等出現更多種 sub-agent 再抽。也曾考慮：不用 LangGraph 自己手刻
+統籌 —— 否決，因為使用者指定用 LangGraph，且它的 `Send` fan-out／reducer／條件邊正是承載
+這套調度迴圈所需的底座。
 
 ### LLM 介面 —— OpenAI 相容，可設定
 
@@ -141,7 +140,8 @@ session 選單與延續對話用;未知 session 回 not found,而非空的 200�
 最後一則 user 訊息;`session_id`（及未來的額外欄
 位）走請求 body 的**額外欄位**帶入 —— client 端用 OpenAI SDK 的 `extra_body` 送、伺服端
 從 body 取出,標準 schema 維持乾淨。回應是標準 ChatCompletion 物件,assistant 訊息的
-content 即 HTML 報告。端點用 `async def`（圖與 LLM 呼叫都是 I/O 密集）。基礎設施錯誤回非
+content 即協調者的回覆（以其文字為主,研究輪附上 report sub-agent 的 HTML 報告）。端點用
+`async def`（圖與 LLM 呼叫都是 I/O 密集）。基礎設施錯誤回非
 2xx 的 OpenAI 風格 error JSON,絕不收斂成「200 夾帶空報告」—— 與「失敗一律 raise、不隱
 藏」一致。
 

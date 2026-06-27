@@ -33,28 +33,27 @@
 - [x] 5.3 實作 `list_sessions()` 與 `get_history(session_id)`,供 API session 管理端點取用
 - [x] 5.4 測試：視窗上限為 `memory_recent_rounds`／session 隔離／重啟後能從 storage 重載狀態／`list_sessions`＋`get_history` 正確
 
-## 6. 協調者圖骨架（fan-out）
+## 6. 協調者統籌引擎（通用 sub-agent 調度 + 彈性迴圈）
 
-- [x] 6.1 定義圖狀態模型（`query`、`session_id`、`subqueries`、累積 `findings`（reducer 合併）、`report`）
-- [x] 6.2 實作 `coordinator` 節點：用 `coordinator_model` 把查詢（含近期記憶上下文）拆解成 1～N 條子查詢；查詢已夠聚焦就回單條
-- [x] 6.3 用 LangGraph `Send`（依 coordinator 產出的子查詢）對每個子查詢平行起 `web_search` 分支，結果經 reducer 合併進累積 `findings`
-- [x] 6.4 組裝 `StateGraph`：`coordinator → web_search(Send) → report`，編譯成可呼叫的協調者
-- [x] 6.5 整合記憶：搜尋前讀近期上下文餵給 coordinator、流程結束後追加該輪並存回
-- [x] 6.6 確保子 agent 的基礎設施失敗（含任一平行分支）會往上拋出該次流程
-- [x] 6.7 測試：完整流程（拆查詢→平行搜尋→合併→報告）／reducer 正確合併並行結果／單一子查詢正常／記憶讀寫／任一子 agent 失敗往上拋（mock 各 agent 與 LLM）
+- [ ] 6.1 設定加 `coordinator_max_rounds`(env `COORDINATOR_MAX_ROUNDS`)≥1，並更新 `.env.example`
+- [ ] 6.2 定義 `SubAgent` 介面（`name`、`description`、`run(task, context) -> 部分 state 更新`），把 web_search、report 各包成 SubAgent，並建以名稱為鍵的 registry
+- [ ] 6.3 定義圖狀態（`query`、`session_id`、`history`、累積 `findings`（reducer 合併）、協調者本輪決策（`message`／`dispatch`／`done`）、輪數、`report`）
+- [ ] 6.4 實作 `coordinator` 節點：用 `coordinator_model` 逐輪產生結構化決策（JSON：給使用者的文字、要派的 `{sub_agent, task}` 清單、是否結束）；JSON 解析失敗即 raise
+- [ ] 6.5 實作通用 `dispatch` 節點 + `Send` 平行派工：依名稱取 sub-agent 執行，成果寫回具體 channel、`findings` 經 reducer 合併
+- [ ] 6.6 組裝迴圈圖：`coordinator →（dispatch｜結束）→ coordinator`，達 `coordinator_max_rounds` 即結束
+- [ ] 6.7 回應組裝：以協調者文字為主，本次有報告則附上其 HTML
+- [ ] 6.8 確保 sub-agent 的基礎設施失敗（含任一並行分支）會往上拋出該次流程
+- [ ] 6.9 測試：完整研究流程（派搜尋→派報告→結束）／純文字回覆／並行 reducer 合併／達上限即停／JSON 解析失敗 raise／任一 sub-agent 失敗往上拋（mock sub-agent 與 LLM）
 
-## 7. 協調者折返重搜（迴圈與上限）
+## 7. 協調者記憶整合
 
-- [ ] 7.1 設定加 `coordinator_max_search_rounds`(env `COORDINATOR_MAX_SEARCH_ROUNDS`)≥1，並更新 `.env.example`
-- [ ] 7.2 圖狀態加重搜輪數欄位，承載折返次數
-- [ ] 7.3 讓 `coordinator` 節點帶累積 findings 重新決策：足夠→出報告；不足→依缺口改寫子查詢再搜一輪；達上限→以現有結果出報告
-- [ ] 7.4 接上條件路由與迴圈：`web_search → coordinator`，`coordinator →（子查詢｜report）`
-- [ ] 7.5 測試：資料足夠就停搜／不足改寫重搜且新結果併入／達上限即停不無限折返（mock 各 agent 與 LLM）
+- [ ] 7.1 實作 `ResearchRunner`：流程前讀近期上下文餵協調者、流程後追加該輪（查詢＋回覆）並存回；提供 `build_research_runner(settings)` 工廠
+- [ ] 7.2 測試：記憶讀寫／延續對話（後輪看得到前輪）／session 隔離
 
 ## 8. FastAPI 服務（`api`，OpenAI 相容）
 
 - [ ] 8.1 實作 FastAPI app，含 OpenAI Chat Completions 相容端點 `POST /v1/chat/completions`（query 取自 `messages`、`session_id` 從 body 額外欄位取出）與 `GET /health`
-- [ ] 8.2 回應組成標準 ChatCompletion 物件,assistant content 放 HTML 報告;基礎設施錯誤對應成非 2xx 的 OpenAI 風格 error（絕不回 200 夾帶空報告）
+- [ ] 8.2 回應組成標準 ChatCompletion 物件,assistant content 放協調者的回覆（研究輪附上 HTML 報告）;基礎設施錯誤對應成非 2xx 的 OpenAI 風格 error（絕不回 200 夾帶空報告）
 - [ ] 8.3 加 session 管理端點：`GET /sessions`（接 `list_sessions()`）與 `GET /sessions/{session_id}/history`（接 `get_history()`,未知 session 回 not found）
 - [ ] 8.4 測試：研究請求成功／缺 user 訊息 → 驗證錯誤／`extra_body` 帶 session 被正確取出／下游失敗 → 錯誤狀態／健康檢查／`GET /sessions` 含空清單／`GET /sessions/{id}/history` 取得紀錄與未知 session → not found（TestClient、mock 協調者與 store）
 
