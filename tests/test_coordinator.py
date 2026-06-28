@@ -3,6 +3,7 @@ import json
 import pytest
 from pydantic import Field
 
+from research_agent.agents.base import BaseAgent
 from research_agent.agents.coordinator import (
     CoordinatorAgent,
     CoordinatorDecisionError,
@@ -92,6 +93,11 @@ class TestCoordinatorPrompt:
         assert "how tall is Everest" in user.content
         assert "Everest facts" in user.content
         assert "hello" in user.content
+
+
+class TestCoordinatorIdentity:
+    def test_is_a_base_agent(self) -> None:
+        assert isinstance(_make_coordinator(""), BaseAgent)
 
 
 class TestCoordinatorDecisionError:

@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from research_agent.agents.base import BaseAgent
 from research_agent.agents.report_generate import ReportGenerateAgent
 from research_agent.agents.web_search import WebSearchAgent
 from research_agent.dto import Finding, Findings
@@ -31,7 +32,7 @@ class DispatchTask(BaseModel):
     context: DispatchContext
 
 
-class SubAgent(BaseModel, ABC):
+class SubAgent(BaseAgent, ABC):
     """A coordinator-dispatchable unit, selected by ``name``/``description``.
 
     ``run`` returns a partial state update keyed by the concrete channel the
@@ -39,9 +40,6 @@ class SubAgent(BaseModel, ABC):
     state. Sub-agents never call each other; they only take a task from the
     coordinator and return their result.
     """
-
-    name: str
-    description: str
 
     @abstractmethod
     async def run(

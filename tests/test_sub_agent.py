@@ -1,5 +1,6 @@
 from pydantic import Field
 
+from research_agent.agents.base import BaseAgent
 from research_agent.agents.report_generate import ReportGenerateAgent
 from research_agent.agents.sub_agent import (
     DispatchContext,
@@ -48,6 +49,7 @@ class TestRegistry:
         assert set(registry) == {"web_search", "report"}
         assert isinstance(registry["web_search"], WebSearchSubAgent)
         assert isinstance(registry["report"], ReportSubAgent)
+        assert isinstance(registry["web_search"], BaseAgent)
 
 
 class TestWebSearchSubAgent:

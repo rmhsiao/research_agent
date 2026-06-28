@@ -2,6 +2,7 @@ import json
 
 from pydantic import BaseModel, Field, ValidationError
 
+from research_agent.agents.base import BaseAgent
 from research_agent.dto import Finding, Round
 from research_agent.llm import LLMClient, Message
 
@@ -49,7 +50,7 @@ _SYSTEM_PROMPT = (
 )
 
 
-class CoordinatorAgent(BaseModel):
+class CoordinatorAgent(BaseAgent):
     """Per-round decision maker driving the research flow.
 
     Given the query, recent conversation and findings gathered so far, it asks
@@ -58,6 +59,10 @@ class CoordinatorAgent(BaseModel):
     description in ``catalog``. Invalid JSON raises rather than degrading.
     """
 
+    name: str = "coordinator"
+    description: str = (
+        "Decide each round what to do next and dispatch sub-agents."
+    )
     llm: LLMClient
     model: str
     catalog: dict[str, str]
