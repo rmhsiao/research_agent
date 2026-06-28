@@ -117,22 +117,17 @@ class CoordinatorAgent(BaseAgent):
         round_index: int,
         max_rounds: int,
     ) -> str:
-        sections = [
-            f"Query: {query}",
-            f"Round {round_index + 1} of at most {max_rounds}.",
-        ]
-        if history:
-            past = "\n".join(
-                f"- Q: {round_.query}\n  A: {round_.response}"
-                for round_ in history
-            )
-            sections.append(f"Recent conversation:\n{past}")
-        if findings:
-            gathered = "\n".join(
-                f"- {finding.source_title}: {finding.summary}"
-                for finding in findings
-            )
-            sections.append(f"Findings gathered so far:\n{gathered}")
-        else:
-            sections.append("No findings gathered yet.")
-        return "\n\n".join(sections)
+        past = "\n".join(
+            f"- Q: `{round_.query}`\n- A: `{round_.response}`"
+            for round_ in history
+        )
+        gathered = "\n".join(
+            f"- {finding.source_title}: {finding.summary}"
+            for finding in findings
+        )
+        return (
+            f"<query>{query}</query>\n"
+            f"<round>{round_index + 1} of at most {max_rounds}</round>\n"
+            f"<history>\n{past or 'none yet'}\n</history>\n"
+            f"<findings>\n{gathered or 'none yet'}\n</findings>"
+        )

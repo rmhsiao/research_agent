@@ -94,6 +94,22 @@ class TestCoordinatorPrompt:
         assert "Everest facts" in user.content
         assert "hello" in user.content
 
+    async def test_context_uses_xml_like_tags(self) -> None:
+        coordinator = _make_coordinator(json.dumps({"done": True}))
+
+        await coordinator.decide(
+            query="q",
+            history=[Round(query="hi", response="hello")],
+            findings=[],
+            round_index=0,
+            max_rounds=3,
+        )
+
+        _, user = coordinator.llm.seen  # type: ignore[attr-defined]
+        assert "<query>q</query>" in user.content
+        assert "<history>\n- Q: `hi`\n- A: `hello`\n</history>" in user.content
+        assert "<findings>\nnone yet\n</findings>" in user.content
+
 
 class TestCoordinatorIdentity:
     def test_is_a_base_agent(self) -> None:
