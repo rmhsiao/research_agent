@@ -1,4 +1,5 @@
 import json
+from html import escape
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -117,16 +118,22 @@ class CoordinatorAgent(BaseAgent):
         round_index: int,
         max_rounds: int,
     ) -> str:
+        # Untrusted values (the user query, prior responses, and web-derived
+        # findings) are escaped so they cannot forge the XML-like tags and break
+        # out of their section. This blocks delimiter spoofing only; it is not a
+        # defense against prose prompt injection in the findings themselves.
         past = "\n".join(
-            f"- Q: `{round_.query}`\n- A: `{round_.response}`"
+            f"- Q: `{escape(round_.query, quote=False)}`\n"
+            f"- A: `{escape(round_.response, quote=False)}`"
             for round_ in history
         )
         gathered = "\n".join(
-            f"- {finding.source_title}: {finding.summary}"
+            f"- {escape(finding.source_title, quote=False)}: "
+            f"{escape(finding.summary, quote=False)}"
             for finding in findings
         )
         return (
-            f"<query>{query}</query>\n"
+            f"<query>{escape(query, quote=False)}</query>\n"
             f"<round>{round_index + 1} of at most {max_rounds}</round>\n"
             f"<history>\n{past or 'none yet'}\n</history>\n"
             f"<findings>\n{gathered or 'none yet'}\n</findings>"
