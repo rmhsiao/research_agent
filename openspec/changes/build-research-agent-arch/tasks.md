@@ -35,15 +35,15 @@
 
 ## 6. 協調者統籌引擎（通用 sub-agent 調度 + 彈性迴圈）
 
-- [ ] 6.1 設定加 `coordinator_max_rounds`(env `COORDINATOR_MAX_ROUNDS`)≥1，並更新 `.env.example`
-- [ ] 6.2 定義 `SubAgent` 介面（`name`、`description`、`run(task, context) -> 部分 state 更新`），把 web_search、report 各包成 SubAgent，並建以名稱為鍵的 registry
-- [ ] 6.3 定義圖狀態（`query`、`session_id`、`history`、累積 `findings`（reducer 合併）、協調者本輪決策（`message`／`dispatch`／`done`）、輪數、`report`）
-- [ ] 6.4 實作 `coordinator` 節點：用 `coordinator_model` 逐輪產生結構化決策（JSON：給使用者的文字、要派的 `{sub_agent, task}` 清單、是否結束）；JSON 解析失敗即 raise
-- [ ] 6.5 實作通用 `dispatch` 節點 + `Send` 平行派工：依名稱取 sub-agent 執行，成果寫回具體 channel、`findings` 經 reducer 合併
-- [ ] 6.6 組裝迴圈圖：`coordinator →（dispatch｜結束）→ coordinator`，達 `coordinator_max_rounds` 即結束
-- [ ] 6.7 回應組裝：以協調者文字為主，本次有報告則附上其 HTML
-- [ ] 6.8 確保 sub-agent 的基礎設施失敗（含任一並行分支）會往上拋出該次流程
-- [ ] 6.9 測試：完整研究流程（派搜尋→派報告→結束）／純文字回覆／並行 reducer 合併／達上限即停／JSON 解析失敗 raise／任一 sub-agent 失敗往上拋（mock sub-agent 與 LLM）
+- [x] 6.1 設定加 `coordinator_max_rounds`(env `COORDINATOR_MAX_ROUNDS`)≥1，並更新 `.env.example`
+- [x] 6.2 定義 `SubAgent` 介面（`name`、`description`、`run(task, context) -> 部分 state 更新`），把 web_search、report 各包成 SubAgent，並建以名稱為鍵的 registry
+- [x] 6.3 定義圖狀態（`query`、`session_id`、`history`、累積 `findings`（reducer 合併）、協調者本輪決策（`message`／`dispatch`／`done`）、輪數、`report`）
+- [x] 6.4 實作 `coordinator` 節點：用 `coordinator_model` 逐輪產生結構化決策（JSON：給使用者的文字、要派的 `{sub_agent, task}` 清單、是否結束）；JSON 解析失敗即 raise
+- [x] 6.5 實作通用 `dispatch` 節點 + `Send` 平行派工：依名稱取 sub-agent 執行，成果寫回具體 channel、`findings` 經 reducer 合併
+- [x] 6.6 組裝迴圈圖：`coordinator →（dispatch｜結束）→ coordinator`，達 `coordinator_max_rounds` 即結束
+- [x] 6.7 回應組裝：以協調者文字為主，本次有報告則附上其 HTML
+- [x] 6.8 確保 sub-agent 的基礎設施失敗（含任一並行分支）會往上拋出該次流程
+- [x] 6.9 測試：完整研究流程（派搜尋→派報告→結束）／純文字回覆／並行 reducer 合併／達上限即停／JSON 解析失敗 raise／任一 sub-agent 失敗往上拋（mock sub-agent 與 LLM）
 
 ## 7. 協調者記憶整合
 
